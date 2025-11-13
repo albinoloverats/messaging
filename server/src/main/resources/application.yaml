@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: messaging-server
+  main:
+    web-application-type: ${DISABLE_WEB:servlet}
+
+messaging:
+  hosts:
+    - ${MESSAGING_SERVERS:none}
+  ssl:
+    #    protocol: TLSv1.3
+    #    jks:
+    #      keyStorePath: classpath:ssl/jks/server-keystore.jks
+    #      keyStorePassword: changeit
+    pem:
+      keyPath: classpath:ssl/pem/server-key.pem
+      #keyPassword: not actually encrypted
+      certificatePath: classpath:ssl/pem/server-cert.pem
+      trustPath: classpath:ssl/pem/ca-cert.pem
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: [ health, prometheus ]
+
+logging:
+  level:
+    root: WARN
+    net.albinoloverats.messaging: ${LOG_LEVEL:INFO}
+#    com.jcabi.aspects: INFO # Keep this at INFO unless debugging aspects

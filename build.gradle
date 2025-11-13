@@ -1,0 +1,46 @@
+plugins {
+	id "java"
+	id "io.spring.dependency-management" version "1.1.7"
+	id "io.freefair.lombok" version "9.1.0"
+	id "io.freefair.aspectj.post-compile-weaving" version "9.1.0"
+	id "org.gradlex.extra-java-module-info" version "1.13.1"
+}
+
+allprojects {
+	group "net.albinoloverats.messaging"
+	version "0.0.1"
+	repositories {
+		mavenLocal()
+		mavenCentral()
+	}
+}
+
+subprojects {
+	apply plugin: "java"
+	apply plugin: "io.spring.dependency-management"
+	apply plugin: "io.freefair.lombok"
+	apply plugin: "io.freefair.aspectj.post-compile-weaving"
+	apply plugin: "org.gradlex.extra-java-module-info"
+
+	dependencyManagement {
+		imports {
+			mavenBom "org.springframework.boot:spring-boot-dependencies:3.5.6"
+		}
+	}
+
+	java {
+		withSourcesJar()
+		withJavadocJar()
+	}
+
+	tasks.named("test") {
+		useJUnitPlatform()
+	}
+
+	extraJavaModuleInfo {
+		failOnMissingModuleInfo.set(false)
+		module("jcabi-aspects-0.26.0.jar", "jcabi.aspects", "0.26.0") {
+			exportAllPackages()
+		}
+	}
+}

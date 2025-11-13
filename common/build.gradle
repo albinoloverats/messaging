@@ -1,0 +1,79 @@
+plugins {
+	id "java"
+	id "java-library"
+	id "maven-publish"
+	id "java-test-fixtures"
+
+	id "io.freefair.lombok"
+	id "io.freefair.aspectj.post-compile-weaving"
+	id "io.spring.dependency-management"
+	id "org.gradlex.extra-java-module-info"
+}
+
+dependencies {
+	compileOnly "org.springframework.boot:spring-boot"
+	compileOnly "jakarta.annotation:jakarta.annotation-api"
+
+	api "com.fasterxml.jackson.core:jackson-databind"
+	api "com.fasterxml.jackson.core:jackson-core"
+	api "com.fasterxml.jackson.core:jackson-annotations"
+	api "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+	api "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+
+	api "org.bouncycastle:bcprov-jdk18on:1.82"
+	api "org.bouncycastle:bcpkix-jdk18on:1.82"
+
+	implementation "org.reflections:reflections:0.10.2"
+//	implementation "org.javassist:javassist:3.30.2-GA"
+
+	compileOnly "io.micrometer:micrometer-core:1.16.0-M3"
+	compileOnly "org.slf4j:slf4j-api"
+
+	api "org.apache.commons:commons-lang3:3.19.0"
+
+	implementation "org.aspectj:aspectjrt:1.9.25"
+	implementation "com.jcabi:jcabi-aspects:0.26.0"
+	aspect "com.jcabi:jcabi-aspects:0.26.0"
+
+
+	testImplementation platform("org.junit:junit-bom:5.14.0")
+	testImplementation "org.junit.jupiter:junit-jupiter"
+	testImplementation "ch.qos.logback:logback-classic:1.4.14"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			from components.java
+			pom {
+				artifactId = "messaging-" + project.name
+				name = "net.albinoloverats.messaging:" + artifactId
+				description = "Common code, shared between messaging client, server, as well as the annotations necessary for client services. Don't depend on this, depend on messaging-client instead."
+				url = "https://albinoloverats.net/projects/messaging"
+				licenses {
+					license {
+						name = "The Apache License, Version 2.0"
+						url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+					}
+				}
+				developers {
+					developer {
+						name = "Ashley Anderson"
+						email = "messaging@albinoloverats.net"
+						organization = "albinoloverats ~ Software Development"
+						organizationUrl = "https://albinoloverats.net/"
+					}
+				}
+				scm {
+					connection = "scm:git:git://github.com/albinoloverats/messaging.git"
+					developerConnection = "scm:git:ssh://github.com:albinoloverats/messaging.git"
+					url = "https://github.com/albinoloverats/messaging/tree/master"
+				}
+			}
+		}
+	}
+	repositories {
+		mavenLocal()
+	}
+}

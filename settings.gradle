@@ -1,0 +1,3 @@
+rootProject.name = "messaging"
+
+include "common", "client", "server"

@@ -1,0 +1,2 @@
+net.albinoloverats.messaging.client.MessagingClientAutoConfiguration
+config.net.albinoloverats.messaging.client.EventSerialisationConfig
