@@ -1,6 +1,6 @@
 FROM openjdk:25-jdk-slim
 WORKDIR /opt/messaging-server
-COPY build/libs/server-0.0.1-SNAPSHOT.jar messaging-server.jar
+COPY build/libs/server-0.0.1.jar messaging-server.jar
 EXPOSE 2413
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "messaging-server.jar"]
