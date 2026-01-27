@@ -16,6 +16,7 @@ public record TestEvent(UUID id,
                         List<Boolean> yesNo,
                         Map<String, String> more,
                         Instant at,
-                        Optional<String> maybe)
+                        Optional<String> maybe,
+                        Optional<TestEvent> another)
 {
 }

@@ -4,6 +4,7 @@ module net.albinoloverats.messaging.client
 	requires transitive org.slf4j;
 
 	requires com.fasterxml.jackson.annotation;
+	requires tools.jackson.core;
 	requires org.apache.commons.lang3;
 	requires org.bouncycastle.pkix;
 	requires jakarta.annotation;

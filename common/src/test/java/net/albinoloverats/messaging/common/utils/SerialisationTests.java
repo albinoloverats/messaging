@@ -1,17 +1,13 @@
-package net.albinoloverats.messaging.server;
+package net.albinoloverats.messaging.common.utils;
 
 import lombok.SneakyThrows;
 import lombok.val;
 import net.albinoloverats.messaging.common.TestEvent;
 import net.albinoloverats.messaging.common.messages.MessageType;
 import net.albinoloverats.messaging.common.messages.SubscribeToEvents;
-import net.albinoloverats.messaging.common.utils.MessageSerialiser;
-import net.albinoloverats.messaging.server.messages.PeerRelay;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -21,19 +17,27 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
-class ServerSerialisationTests
+class SerialisationTests
 {
-	private static final UUID ID = UUID.fromString("5f5e9426-74f2-4675-b422-be6c3870cab4");
-	private static final TestEvent EVENT = new TestEvent(ID,
+	private static final TestEvent EVENT = new TestEvent(UUID.randomUUID(),
 			"Lorum ipsum...",
 			4,
 			List.of(true, false),
 			Map.of("A", "Z", "B", "Y"),
 			Instant.EPOCH,
 			Optional.of("maybe"),
-			Optional.empty());
+			Optional.of(new TestEvent(UUID.randomUUID(),
+					"Lorum ipsum...",
+					7,
+					List.of(),
+					Map.of(),
+					Instant.now(),
+					Optional.of("maybe more"),
+					Optional.empty())));
+	private static final UUID MESSAGE_ID = UUID.randomUUID();
 
 	@BeforeAll
 	static void init()
@@ -42,7 +46,6 @@ class ServerSerialisationTests
 		basePackages.add(TestEvent.class.getPackageName());
 		basePackages.add(SubscribeToEvents.class.getPackageName());
 		basePackages.add(Set.class.getPackageName());
-		basePackages.add(PeerRelay.class.getPackageName());
 		basePackages.add("java.util"); // for Set, UUID, maybe more...
 		basePackages.add("java.time"); // for Instant and others...
 		MessageSerialiser.initialise(basePackages);
@@ -50,18 +53,17 @@ class ServerSerialisationTests
 
 	@Test
 	@SneakyThrows
-	void verify_broadcast_lifecycle()
+	void verify_serialise_then_deserialise()
 	{
-		var event = MessageSerialiser.serialiseEvent(EVENT, ID, MessageType.EVENT);
-		val broadcast = new PeerRelay(event.array());
-		val id = broadcast.id();
-		val serialized = MessageSerialiser.serialiseEvent(broadcast, id, MessageType.EVENT);
+		val buffer = MessageSerialiser.serialiseEvent(EVENT, MESSAGE_ID, MessageType.EVENT);
 
-		PeerRelay deserialized = MessageSerialiser.deserialiseEvent(serialized);
-		assertEquals(id, deserialized.id());
+		assertNotNull(buffer);
+		val length = buffer.getInt();
+		assertTrue(length > 0);
+		buffer.rewind();
 
-		val payload = deserialized.event();
-		TestEvent recovered = MessageSerialiser.deserialiseEvent(ByteBuffer.wrap(payload));
-		assertEquals(EVENT, recovered);
+		TestEvent result = MessageSerialiser.deserialiseEvent(buffer);
+		assertNotNull(result);
+		assertEquals(EVENT, result);
 	}
 }

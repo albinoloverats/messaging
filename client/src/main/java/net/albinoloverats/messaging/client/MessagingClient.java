@@ -26,6 +26,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import tools.jackson.core.JacksonException;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -406,18 +407,18 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 	{
 		try
 		{
-			val triple = MessageSerialiser.separateMessage(messagePayload);
-			messagePayload = triple.getLeft();
-			val deserialised = MessageSerialiser.deserialiseMessage(messagePayload);
-			messagePayload.rewind();
-			val id = triple.getMiddle();
-			val type = triple.getRight();
+			val metadata = MessageSerialiser.extractMetadata(messagePayload);
+			val deserialised = MessageSerialiser.deserialiseEvent(messagePayload);
+			val id = metadata.getMiddle();
+			val type = metadata.getRight();
 
 			if (type == MessageType.EVENT)
+			{
 				sentAndReceived.replace(id, true);
+			}
 
 			log.debug("Received {} as {} : {}", id, type, deserialised);
-			val json = MessageSerialiser.bufferToString(messagePayload);
+			val json = MessageSerialiser.extractEvent(messagePayload);
 			log.trace("Payload for {} : {}", id, json);
 			switch (type)
 			{
@@ -455,7 +456,7 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 				}
 			}
 		}
-		catch (IOException | ClassCastException | InvalidMessage e)
+		catch (JacksonException | ClassCastException | InvalidMessage e)
 		{
 			log.error("Error deserialising or consuming event", e);
 		}
@@ -572,8 +573,7 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 		{
 			val serialisedMessage = MessageSerialiser.serialiseEvent(message, messageId, messageType);
 			log.debug("Sending {} as {} : {}", messageId, messageType, message);
-			val triple = MessageSerialiser.separateMessage(serialisedMessage.duplicate());
-			val json = MessageSerialiser.bufferToString(triple.getLeft());
+			val json = MessageSerialiser.extractEvent(serialisedMessage);
 			log.trace("Payload for {} : {}", messageId, json);
 			switch (messageType)
 			{
@@ -590,7 +590,7 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 
 			sendMessage(serialisedMessage);
 		}
-		catch (IOException | InvalidMessage e)
+		catch (JacksonException | InvalidMessage e)
 		{
 			log.warn("Could not serialise event", e);
 		}

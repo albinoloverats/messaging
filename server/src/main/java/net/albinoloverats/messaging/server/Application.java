@@ -1,7 +1,5 @@
 package net.albinoloverats.messaging.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +18,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import tools.jackson.core.JacksonException;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,7 +45,7 @@ public class Application
 		basePackages.add("java.math"); // for BigDecimal or BigInteger
 		basePackages.add("java.time"); // for Instant and others...
 		basePackages.add("java.util"); // for Set, UUID, maybe more...
-		MessageSerialiser.setBaseScanPackagesAndInitValidator(basePackages);
+		MessageSerialiser.initialise(basePackages);
 		SpringApplication.run(Application.class, args);
 	}
 
@@ -54,8 +54,10 @@ public class Application
 	{
 		try
 		{
-			val yamlMapper = new ObjectMapper(new YAMLFactory());
-			yamlMapper.findAndRegisterModules();
+			val yamlMapper = YAMLMapper.builder()
+					.findAndAddModules()
+					.build();
+
 			val configFile = new File(DOCKER_CONFIG);
 			if (configFile.exists() && configFile.isFile() && configFile.canRead())
 			{
@@ -73,7 +75,7 @@ public class Application
 				log.warn("Could not read config file {}", DOCKER_CONFIG);
 			}
 		}
-		catch (IOException e)
+		catch (JacksonException e)
 		{
 			log.warn("Could not parse configuration file : {}", DOCKER_CONFIG, e);
 		}

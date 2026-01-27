@@ -1,6 +1,5 @@
 package net.albinoloverats.messaging.server;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jcabi.aspects.Loggable;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -22,6 +21,7 @@ import net.albinoloverats.messaging.server.messages.PeerSubscriptions;
 import net.albinoloverats.messaging.server.metrics.Counters;
 import net.albinoloverats.messaging.server.utils.ConsistentHashRing;
 import org.apache.commons.lang3.StringUtils;
+import tools.jackson.core.JacksonException;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -403,15 +403,14 @@ class MessagingServer extends NIO<ServerSocketChannel>
 	{
 		try
 		{
-			val messageType = MessageSerialiser.findEventType(messagePayload);
+			val metadata = MessageSerialiser.extractMetadata(messagePayload);
+			val messageType = metadata.getLeft();
 			log.debug("Received {} from {}", messageType, client);
-			messagePayload.rewind();
 			val tasks = new HashSet<Runnable>();
 			if (messageHandlers.containsKey(messageType))
 			{
 				val handler = messageHandlers.get(messageType);
-				val triple = MessageSerialiser.separateMessage(messagePayload);
-				val message = MessageSerialiser.deserialiseMessage(triple.getLeft());
+				val message = MessageSerialiser.deserialiseEvent(messagePayload);
 				tasks.add(() -> handler.accept(client, message));
 			}
 			else
@@ -421,10 +420,8 @@ class MessagingServer extends NIO<ServerSocketChannel>
 					/*
 					 * Check if a message can be handled.
 					 */
-					val triple = MessageSerialiser.separateMessage(messagePayload);
-					messagePayload.rewind();
-					val id = triple.getMiddle();
-					val type = triple.getRight();
+					val id = metadata.getMiddle();
+					val type = metadata.getRight();
 
 					if (type == MessageType.EVENT)
 						sentAndReceived.put(id, true);
@@ -465,7 +462,7 @@ class MessagingServer extends NIO<ServerSocketChannel>
 			}
 			tasks.forEach(messageProcessorExecutor::submit);
 		}
-		catch (JsonProcessingException | InvalidMessage e)
+		catch (JacksonException | InvalidMessage e)
 		{
 			log.error("Could not deserialise event and/or event ID", e);
 		}
@@ -489,7 +486,7 @@ class MessagingServer extends NIO<ServerSocketChannel>
 			log.debug("Sending PeerRegistration to {}", peer);
 			peer.sendMessage(buffer);
 		}
-		catch (JsonProcessingException e)
+		catch (JacksonException e)
 		{
 			log.error("Could not serialise peer registration message", e);
 		}
@@ -544,7 +541,7 @@ class MessagingServer extends NIO<ServerSocketChannel>
 			val buffer = MessageSerialiser.serialiseEvent(disconnect, serverId, MessageType.EVENT);
 			peers.forEach(p -> p.sendMessage(buffer.duplicate()));
 		}
-		catch (JsonProcessingException e)
+		catch (JacksonException e)
 		{
 			log.error("Could not serialise broadcast disconnect", e);
 		}
@@ -592,10 +589,9 @@ class MessagingServer extends NIO<ServerSocketChannel>
 		MessageType messageType = null;
 		try
 		{
-			val triple = MessageSerialiser.separateMessage(buffer);
-			buffer.rewind();
-			messageId = triple.getMiddle();
-			messageType = triple.getRight();
+			val metadata = MessageSerialiser.extractMetadata(buffer);
+			messageId = metadata.getMiddle();
+			messageType = metadata.getRight();
 			val peers = clients.stream()
 					.filter(ServerClient::isPeer)
 					.collect(Collectors.toSet());
@@ -607,7 +603,7 @@ class MessagingServer extends NIO<ServerSocketChannel>
 			val relayBuffer = MessageSerialiser.serialiseEvent(relay, relay.id(), MessageType.EVENT);
 			peers.forEach(peer -> peer.sendMessage(relayBuffer.duplicate()));
 		}
-		catch (JsonProcessingException | InvalidMessage e)
+		catch (JacksonException | InvalidMessage e)
 		{
 			log.error("Could not serialise relay {} message {} of {} {}",
 					type,
@@ -633,14 +629,13 @@ class MessagingServer extends NIO<ServerSocketChannel>
 		val buffer = ByteBuffer.wrap(messagePayload);
 		try
 		{
-			val triple = MessageSerialiser.separateMessage(buffer);
-			val messageId = triple.getMiddle();
-			val type = triple.getRight();
-			buffer.rewind();
+			val metadata = MessageSerialiser.extractMetadata(buffer);
+			val messageId = metadata.getMiddle();
+			val type = metadata.getRight();
 			log.debug("Received relay message {} for {} {}", relay.id(), type, messageId);
 			handleIncomingMessage(peer, buffer, false);
 		}
-		catch (JsonProcessingException | InvalidMessage e)
+		catch (JacksonException | InvalidMessage e)
 		{
 			log.error("Could not deserialise relay message: {}", relay.id(), e);
 		}
@@ -674,7 +669,7 @@ class MessagingServer extends NIO<ServerSocketChannel>
 			val buffer = MessageSerialiser.serialiseEvent(peerUpdate, serverId, MessageType.EVENT);
 			peers.forEach(peer -> peer.sendMessage(buffer.duplicate()));
 		}
-		catch (JsonProcessingException e)
+		catch (JacksonException e)
 		{
 			log.error("Could not serialise subscription update", e);
 		}
@@ -756,7 +751,7 @@ class MessagingServer extends NIO<ServerSocketChannel>
 			val buffer = MessageSerialiser.serialiseEvent(ack, serverId, MessageType.RESPONSE);
 			client.sendMessage(buffer);
 		}
-		catch (JsonProcessingException e)
+		catch (JacksonException e)
 		{
 			log.error("Could not serialise ACK", e);
 		}
@@ -769,12 +764,11 @@ class MessagingServer extends NIO<ServerSocketChannel>
 		MessageType type;
 		try
 		{
-			val triple = MessageSerialiser.separateMessage(messagePayload);
-			messagePayload.rewind();
-			messageId = triple.getMiddle();
-			type = triple.getRight();
+			val metadata = MessageSerialiser.extractMetadata(messagePayload);
+			messageId = metadata.getMiddle();
+			type = metadata.getRight();
 		}
-		catch (JsonProcessingException | InvalidMessage e)
+		catch (JacksonException | InvalidMessage e)
 		{
 			log.error("Could not deserialise event and/or message ID", e);
 			return;

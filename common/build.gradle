@@ -14,14 +14,10 @@ dependencies {
 	compileOnly "org.springframework.boot:spring-boot"
 	compileOnly "jakarta.annotation:jakarta.annotation-api"
 
-	api "com.fasterxml.jackson.core:jackson-databind"
-	api "com.fasterxml.jackson.core:jackson-core"
-	api "com.fasterxml.jackson.core:jackson-annotations"
-	api "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
-	api "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+	api "tools.jackson.core:jackson-databind"
 
-	api "org.bouncycastle:bcprov-jdk18on:1.82"
-	api "org.bouncycastle:bcpkix-jdk18on:1.82"
+	api "org.bouncycastle:bcprov-jdk18on:1.83"
+	api "org.bouncycastle:bcpkix-jdk18on:1.83"
 
 	implementation "org.reflections:reflections:0.10.2"
 //	implementation "org.javassist:javassist:3.30.2-GA"
@@ -36,9 +32,9 @@ dependencies {
 	aspect "com.jcabi:jcabi-aspects:0.26.0"
 
 
-	testImplementation platform("org.junit:junit-bom:5.14.0")
+	testImplementation platform("org.junit:junit-bom:6.0.2")
 	testImplementation "org.junit.jupiter:junit-jupiter"
-	testImplementation "ch.qos.logback:logback-classic:1.4.14"
+	testImplementation "ch.qos.logback:logback-classic:1.5.26"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 

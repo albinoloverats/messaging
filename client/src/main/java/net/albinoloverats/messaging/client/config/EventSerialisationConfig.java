@@ -107,7 +107,7 @@ final public class EventSerialisationConfig implements InitializingBean
 
 		if (!basePackages.isEmpty())
 		{
-			MessageSerialiser.setBaseScanPackagesAndInitValidator(basePackages);
+			MessageSerialiser.initialise(basePackages);
 		}
 		else
 		{

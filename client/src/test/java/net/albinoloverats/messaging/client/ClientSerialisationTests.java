@@ -33,11 +33,7 @@ class ClientSerialisationTests
 			[
 				"net.albinoloverats.messaging.common.TestEvent",
 				{
-					"id" :
-					[
-						"java.util.UUID",
-						"5f5e9426-74f2-4675-b422-be6c3870cab4"
-					],
+					"id" : "5f5e9426-74f2-4675-b422-be6c3870cab4",
 					"description": "Lorum ipsum...",
 					"value" : 4,
 					"yesNo" :
@@ -56,12 +52,9 @@ class ClientSerialisationTests
 							"A" : "Z"
 						}
 					],
-					"at" :
-					[
-						"java.time.Instant",
-						0.0
-					],
-					"maybe" : "maybe"
+					"at" : "1970-01-01T00:00:00Z",
+					"maybe" : "maybe",
+					"another" : null
 				},
 				"9d252d74-4506-4769-b599-888a7c671a2b",
 				"EVENT"
@@ -71,11 +64,7 @@ class ClientSerialisationTests
 			[
 				"net.albinoloverats.messaging.other.Unknown",
 				{
-					"id" :
-					[
-						"java.util.UUID",
-						"5f5e9426-74f2-4675-b422-be6c3870cab4"
-					],
+					"id" : "5f5e9426-74f2-4675-b422-be6c3870cab4",
 					"description": "Lorum ipsum...",
 					"value" : 4,
 					"yesNo" :
@@ -94,12 +83,9 @@ class ClientSerialisationTests
 							"A" : "Z"
 						}
 					],
-					"at" :
-					[
-						"java.time.Instant",
-						0.0
-					],
-					"maybe" : "maybe"
+					"at" : "1970-01-01T00:00:00Z",
+					"maybe" : "maybe",
+					"another" : null
 				},
 				"9d252d74-4506-4769-b599-888a7c671a2b",
 				"EVENT"
@@ -111,7 +97,8 @@ class ClientSerialisationTests
 			List.of(true, false),
 			Map.of("A", "Z", "B", "Y"),
 			Instant.EPOCH,
-			Optional.of("maybe"));
+			Optional.of("maybe"),
+			Optional.empty());
 	private static final String UNKNOWN_EVENT_TYPE = "net.albinoloverats.messaging.other.Unknown";
 	private static final UUID MESSAGE_ID = UUID.fromString("9d252d74-4506-4769-b599-888a7c671a2b");
 
@@ -124,7 +111,7 @@ class ClientSerialisationTests
 		basePackages.add(Set.class.getPackageName());
 		basePackages.add("java.util"); // for Set, UUID, maybe more...
 		basePackages.add("java.time"); // for Instant and others...
-		MessageSerialiser.setBaseScanPackagesAndInitValidator(basePackages);
+		MessageSerialiser.initialise(basePackages);
 	}
 
 	@Test
@@ -145,17 +132,18 @@ class ClientSerialisationTests
 	@SneakyThrows
 	void verify_known_event_deserialisation()
 	{
-		var buffer = ByteBuffer.allocate(KNOWN_EVENT_JSON.length() + Integer.BYTES);
+		val buffer = ByteBuffer.allocate(KNOWN_EVENT_JSON.length() + Integer.BYTES);
 		buffer.putInt(KNOWN_EVENT_JSON.length());
 		buffer.put(KNOWN_EVENT_JSON.getBytes(StandardCharsets.UTF_8));
 		buffer.flip();
-		val triple = MessageSerialiser.separateMessage(buffer);
-		val payload = triple.getLeft();
+		val triple = MessageSerialiser.extractMetadata(buffer);
+		val clazz = triple.getLeft();
 		val id = triple.getMiddle();
 		val type = triple.getRight();
+		assertEquals(EVENT.getClass().getCanonicalName(), clazz);
 		assertEquals(MESSAGE_ID, id);
 		assertEquals(MessageType.EVENT, type);
-		val event = MessageSerialiser.deserialiseMessage(payload);
+		val event = MessageSerialiser.deserialiseEvent(buffer);
 		assertEquals(EVENT, event);
 	}
 
@@ -177,17 +165,16 @@ class ClientSerialisationTests
 	@SneakyThrows
 	void verify_unknown_event_deserialisation()
 	{
-		var buffer = ByteBuffer.allocate(UNKNOWN_EVENT_JSON.length() + Integer.BYTES);
+		val buffer = ByteBuffer.allocate(UNKNOWN_EVENT_JSON.length() + Integer.BYTES);
 		buffer.putInt(UNKNOWN_EVENT_JSON.length());
 		buffer.put(UNKNOWN_EVENT_JSON.getBytes(StandardCharsets.UTF_8));
 		buffer.flip();
-		val triple = MessageSerialiser.separateMessage(buffer);
-		buffer = triple.getLeft();
+		val triple = MessageSerialiser.extractMetadata(buffer);
+		val clazz = triple.getLeft();
 		val id = triple.getMiddle();
 		val type = triple.getRight();
+		assertEquals(UNKNOWN_EVENT_TYPE, clazz);
 		assertEquals(MESSAGE_ID, id);
 		assertEquals(MessageType.EVENT, type);
-		val eventType = MessageSerialiser.findEventType(buffer);
-		assertEquals(UNKNOWN_EVENT_TYPE, eventType);
 	}
 }
