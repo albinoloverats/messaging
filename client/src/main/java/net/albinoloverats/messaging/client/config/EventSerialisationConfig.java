@@ -8,13 +8,13 @@ import net.albinoloverats.messaging.common.messages.SubscribeToEvents;
 import net.albinoloverats.messaging.common.utils.MessageSerialiser;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
 
 @Slf4j
-@Configuration
+@Component
 final public class EventSerialisationConfig implements InitializingBean
 {
 	/*

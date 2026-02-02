@@ -1,12 +1,13 @@
-package net.albinoloverats.messaging.client;
+package net.albinoloverats.messaging.client.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import net.albinoloverats.messaging.client.config.OnMessagingEnabledCondition;
+import net.albinoloverats.messaging.client.MessagingGateway;
+import net.albinoloverats.messaging.client.client.DefaultMessagingClient;
+import net.albinoloverats.messaging.client.client.MessagingClient;
 import net.albinoloverats.messaging.common.config.MessagingProperties;
 import net.albinoloverats.messaging.common.security.EphemeralContextFactory;
 import net.albinoloverats.messaging.common.security.JKSContextFactory;
@@ -14,6 +15,7 @@ import net.albinoloverats.messaging.common.security.PEMContextFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCSException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -23,9 +25,12 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Optional;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
@@ -35,15 +40,21 @@ import java.util.stream.Collectors;
 @EnableConfigurationProperties(MessagingProperties.class)
 @Conditional(OnMessagingEnabledCondition.class)
 @Slf4j
-@RequiredArgsConstructor
-final class MessagingClientAutoConfiguration
+public final class MessagingClientAutoConfiguration
 {
-	private MessagingClient messagingClient;
+	private DefaultMessagingClient messagingClient;
 
 	@Bean
-	AnnotatedEventDispatcher annotatedEventDispatcher(ApplicationContext applicationContext)
+	Executor messagingEventExecutor()
 	{
-		return new AnnotatedEventDispatcher(applicationContext);
+		return Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+	}
+
+	@Bean
+	AnnotatedEventDispatcher messagingDispatcher(ApplicationContext applicationContext,
+	                                             @Qualifier("messagingEventExecutor") Executor eventExecutor)
+	{
+		return new AnnotatedEventDispatcher(applicationContext, eventExecutor);
 	}
 
 	@Bean
@@ -53,12 +64,8 @@ final class MessagingClientAutoConfiguration
 		return new SimpleMeterRegistry();
 	}
 
-	@ConditionalOnProperty(name = "spring.application.name")
 	@Bean
-	MessagingClient messagingClient(@Value("${spring.application.name}") String applicationName,
-	                                MessagingProperties properties,
-	                                AnnotatedEventDispatcher eventDispatcher,
-	                                MeterRegistry meterRegistry)
+	SSLContext messagingSslContext(MessagingProperties properties)
 	{
 		try
 		{
@@ -77,18 +84,7 @@ final class MessagingClientAutoConfiguration
 					sslContext = PEMContextFactory.create(properties.ssl().pem(), protocol);
 				}
 			}
-
-			val hosts = properties.hosts()
-					.stream()
-					.map(StringUtils::toRootLowerCase)
-					.collect(Collectors.toSet());
-			log.info("Auto-configuring MessagingClient with hosts: {}, clientId: {}", hosts, applicationName);
-			messagingClient = new MessagingClient(applicationName,
-					properties,
-					sslContext,
-					eventDispatcher,
-					meterRegistry);
-			messagingClient.start();
+			return sslContext;
 		}
 		catch (GeneralSecurityException
 		       | IOException
@@ -98,13 +94,53 @@ final class MessagingClientAutoConfiguration
 			log.error("Failed to start MessagingClient", e);
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Bean
+	@ConditionalOnProperty(name = "spring.application.name")
+	MessagingClient messagingClient(@Value("${spring.application.name}") String applicationName,
+	                                MessagingProperties properties,
+	                                AnnotatedEventDispatcher eventDispatcher,
+	                                @Qualifier("messagingSslContext") SSLContext sslContext,
+	                                MeterRegistry meterRegistry)
+	{
+		try
+		{
+			val hosts = properties.hosts()
+					.stream()
+					.map(StringUtils::toRootLowerCase)
+					.collect(Collectors.toSet());
+			log.info("Auto-configuring MessagingClient with hosts: {}, clientId: {}", hosts, applicationName);
+			messagingClient = new DefaultMessagingClient(applicationName,
+					properties,
+					sslContext,
+					eventDispatcher,
+					meterRegistry);
+		}
+		catch (IOException e)
+		{
+			log.error("Failed to instantiate MessagingClient", e);
+			throw new RuntimeException(e);
+		}
 		return messagingClient;
 	}
 
 	@Bean
-	public MessagingGateway messagingGateway(MeterRegistry meterRegistry, MessagingClient messagingClient)
+	public MessagingGateway messagingGateway(MessagingClient messagingClient)
 	{
-		return new MessagingGateway(meterRegistry, messagingClient);
+		if (messagingClient instanceof DefaultMessagingClient liveClient)
+		{
+			try
+			{
+				liveClient.start();
+			}
+			catch (IOException e)
+			{
+				log.error("Failed to start MessagingClient", e);
+				throw new RuntimeException(e);
+			}
+		}
+		return new MessagingGateway(messagingClient);
 	}
 
 	@PreDestroy

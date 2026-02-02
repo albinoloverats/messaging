@@ -1,41 +1,23 @@
 package net.albinoloverats.messaging.client;
 
 import com.jcabi.aspects.Loggable;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import net.albinoloverats.messaging.client.client.MessagingClient;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-
-import static net.albinoloverats.messaging.common.metrics.Constants.QUERY_DURATION;
 
 /**
  * A gateway for applications to publish events or queries to the MessagingServer.
  * This class abstracts the underlying messaging client.
  */
 @Slf4j
+@RequiredArgsConstructor
 final public class MessagingGateway
 {
 	private final MessagingClient messagingClient;
-	private final Timer queryTimer;
-
-	/**
-	 * Default (only) constructor.
-	 *
-	 * @param meterRegistry   The meter registry to use for metrics.
-	 * @param messagingClient The client implementation to handle all network IO.
-	 */
-	public MessagingGateway(MeterRegistry meterRegistry, MessagingClient messagingClient)
-	{
-		this.messagingClient = messagingClient;
-		val tags = messagingClient.getCounters().defaultTags();
-		queryTimer = Timer.builder(QUERY_DURATION)
-				.tags(tags)
-				.register(meterRegistry);
-	}
 
 	/**
 	 * Publishes an event to the MessagingServer.
@@ -53,6 +35,10 @@ final public class MessagingGateway
 		return messagingClient.sendMessage(event);
 	}
 
+	/*
+	 * TODO Possibly allow for collections of events (how to handle exceptions?)
+	 */
+
 	/**
 	 * Publishes a query to the MessagingServer. The query object will be
 	 * serialised and sent, and a response should eventually be returned.
@@ -63,11 +49,8 @@ final public class MessagingGateway
 	@Loggable(value = Loggable.TRACE, prepend = true)
 	public <R> CompletableFuture<R> query(@NonNull Object query)
 	{
-		return queryTimer.record(() ->
-		{
-			log.debug("Publishing query: {}", query.getClass().getName());
-			return messagingClient.sendMessageWantResponse(query);
-		});
+		log.debug("Publishing query: {}", query.getClass().getName());
+		return messagingClient.sendMessageWantResponse(query);
 	}
 
 	/**

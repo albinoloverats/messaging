@@ -41,7 +41,7 @@ public record MessagingProperties(Set<String> hosts, SSL ssl)
 	}
 
 	/**
-	 * Wrapper for docker-ized configuration.
+	 * Wrapper for docker configuration.
 	 *
 	 * @param messaging The configuration.
 	 */

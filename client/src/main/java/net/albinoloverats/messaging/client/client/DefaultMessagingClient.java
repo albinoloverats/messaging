@@ -1,10 +1,12 @@
-package net.albinoloverats.messaging.client;
+package net.albinoloverats.messaging.client.client;
 
 import com.jcabi.aspects.Loggable;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import net.albinoloverats.messaging.client.config.AnnotatedEventDispatcher;
 import net.albinoloverats.messaging.client.exceptions.ConnectionLostException;
 import net.albinoloverats.messaging.client.exceptions.QueryException;
 import net.albinoloverats.messaging.client.metrics.Counters;
@@ -24,6 +26,7 @@ import net.albinoloverats.messaging.common.utils.Constants;
 import net.albinoloverats.messaging.common.utils.MessageSerialiser;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import tools.jackson.core.JacksonException;
@@ -36,6 +39,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,6 +56,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static net.albinoloverats.messaging.common.metrics.Constants.OUTBOUND_QUEUE;
+import static net.albinoloverats.messaging.common.metrics.Constants.QUERY_DURATION;
 import static net.albinoloverats.messaging.common.metrics.Constants.QUERY_PENDING;
 import static net.albinoloverats.messaging.common.utils.Constants.DISCOVERY_BUFFER_SIZE;
 import static net.albinoloverats.messaging.common.utils.Constants.FIVE_SECONDS;
@@ -60,7 +65,7 @@ import static net.albinoloverats.messaging.common.utils.Constants.PORT;
 import static net.albinoloverats.messaging.common.utils.Constants.QUEUE_SIZE;
 
 @Slf4j
-final class MessagingClient extends NIO<SocketChannel> implements NIOClient, ApplicationListener<ContextRefreshedEvent>
+public final class DefaultMessagingClient extends NIO<SocketChannel> implements MessagingClient, NIOClient, ApplicationListener<ContextRefreshedEvent>
 {
 	/*
 	 * Us
@@ -80,7 +85,9 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 	private final AtomicBoolean initialSubscriptionSent = new AtomicBoolean(false);
 
 	private final Map<UUID, CompletableFuture<Void>> awaitingAck = new ConcurrentHashMap<>();
-	private final Map<UUID, CompletableFuture<Object>> awaitingResponse = new ConcurrentHashMap<>();
+	private final Map<UUID, Pair<Instant, CompletableFuture<Object>>> awaitingResponse = new ConcurrentHashMap<>();
+
+	private final Timer queryTimer;
 
 	private final Map<String, BiConsumer<UUID, Object>> messageHandlers = Map.ofEntries(
 			Map.entry(ServerAck.class.getName(),
@@ -92,11 +99,11 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 			Map.entry(QueryException.class.getName(),
 					(id, message) -> handleQueryException(id, (QueryException)message)));
 
-	public MessagingClient(String serviceName,
-	                       MessagingProperties properties,
-	                       SSLContext sslContext,
-	                       AnnotatedEventDispatcher eventDispatcher,
-	                       MeterRegistry meterRegistry)
+	public DefaultMessagingClient(String serviceName,
+	                              MessagingProperties properties,
+	                              SSLContext sslContext,
+	                              AnnotatedEventDispatcher eventDispatcher,
+	                              MeterRegistry meterRegistry)
 			throws IOException
 	{
 		val id = UUID.randomUUID();
@@ -113,6 +120,10 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 
 		this.eventDispatcher = eventDispatcher;
 
+		val tags = counters.defaultTags();
+		queryTimer = Timer.builder(QUERY_DURATION)
+				.tags(tags)
+				.register(meterRegistry);
 	}
 
 	protected void additionalMetrics(MeterRegistry meterRegistry)
@@ -309,8 +320,11 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 			log.warn("Unexpected attachment {} for {}", attachment, this);
 		}
 		stop();
-		awaitingResponse.forEach((correlationId, future) ->
-				future.completeExceptionally(new ConnectionLostException("Future failed - disconnected from server")));
+		awaitingResponse.forEach((correlationId, pair) ->
+		{
+			val future = pair.getRight();
+			future.completeExceptionally(new ConnectionLostException("Future failed - disconnected from server"));
+		});
 		awaitingResponse.clear();
 		scheduleReconnect();
 	}
@@ -446,12 +460,16 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 								.accept(id, deserialised);
 						break;
 					}
-					val future = awaitingResponse.remove(id);
-					if (future == null)
+					val pair = awaitingResponse.remove(id);
+					if (pair == null)
 					{
 						log.error("Missing future for query {}", id);
 						break;
 					}
+					val start = pair.getLeft();
+					val future = pair.getRight();
+					val end = Instant.now();
+					queryTimer.record(Duration.between(start, end));
 					future.complete(deserialised);
 				}
 			}
@@ -489,7 +507,13 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 	{
 		log.warn("No handler found for {}", handlerNotFound.getType());
 		val isQuery = awaitingResponse.containsKey(id);
-		val future = ObjectUtils.firstNonNull(awaitingAck.remove(id), awaitingResponse.remove(id));
+		CompletableFuture<Object> queryFuture = null;
+		if (isQuery)
+		{
+			val pair = awaitingResponse.remove(id);
+			queryFuture = pair.getRight();
+		}
+		val future = ObjectUtils.firstNonNull(awaitingAck.remove(id), queryFuture);
 		var type = MessageType.EVENT;
 		if (isQuery)
 		{
@@ -511,7 +535,8 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 	@Loggable(value = Loggable.TRACE, prepend = true)
 	private void handleQueryException(UUID id, QueryException queryException)
 	{
-		val future = awaitingResponse.remove(id);
+		val pair = awaitingResponse.remove(id);
+		val future = pair.getRight();
 		val queryType = queryException.getQueryType();
 		val cause = queryException.getOriginalCause();
 		counters.queryExceptional(queryType, cause);
@@ -535,6 +560,7 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 	 *
 	 * @param message The message object to send.
 	 */
+	@Override
 	@Loggable(value = Loggable.TRACE, prepend = true)
 	public CompletableFuture<Void> sendMessage(Object message)
 	{
@@ -550,12 +576,16 @@ final class MessagingClient extends NIO<SocketChannel> implements NIOClient, App
 	 *
 	 * @param message The message object to send.
 	 */
+	@SuppressWarnings("unchecked")
+	@Override
 	@Loggable(value = Loggable.TRACE, prepend = true)
 	public <R> CompletableFuture<R> sendMessageWantResponse(Object message)
 	{
 		val queryId = UUID.randomUUID();
 		val future = new CompletableFuture<R>();
-		awaitingResponse.put(queryId, (CompletableFuture<Object>)future);
+		val now = Instant.now();
+		val pair = Pair.of(now, (CompletableFuture<Object>)future);
+		awaitingResponse.put(queryId, pair);
 		sendMessage(message, queryId, MessageType.QUERY);
 		return future;
 	}

@@ -3,7 +3,6 @@ plugins {
 	id "java-library"
 	id "maven-publish"
 	id "java-test-fixtures"
-
 	id "io.freefair.lombok"
 	id "io.freefair.aspectj.post-compile-weaving"
 	id "io.spring.dependency-management"

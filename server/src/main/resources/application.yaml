@@ -8,10 +8,10 @@ messaging:
   hosts:
     - ${MESSAGING_SERVERS:none}
   ssl:
-    #    protocol: TLSv1.3
-    #    jks:
-    #      keyStorePath: classpath:ssl/jks/server-keystore.jks
-    #      keyStorePassword: changeit
+#    protocol: TLSv1.3
+#    jks:
+#      keyStorePath: classpath:ssl/jks/server-keystore.jks
+#      keyStorePassword: changeit
     pem:
       keyPath: classpath:ssl/pem/server-key.pem
       #keyPassword: not actually encrypted

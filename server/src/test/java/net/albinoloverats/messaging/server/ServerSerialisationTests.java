@@ -55,12 +55,12 @@ class ServerSerialisationTests
 		var event = MessageSerialiser.serialiseEvent(EVENT, ID, MessageType.EVENT);
 		val broadcast = new PeerRelay(event.array());
 		val id = broadcast.id();
-		val serialized = MessageSerialiser.serialiseEvent(broadcast, id, MessageType.EVENT);
+		val serialised = MessageSerialiser.serialiseEvent(broadcast, id, MessageType.EVENT);
 
-		PeerRelay deserialized = MessageSerialiser.deserialiseEvent(serialized);
-		assertEquals(id, deserialized.id());
+		PeerRelay deserialised = MessageSerialiser.deserialiseEvent(serialised);
+		assertEquals(id, deserialised.id());
 
-		val payload = deserialized.event();
+		val payload = deserialised.event();
 		TestEvent recovered = MessageSerialiser.deserialiseEvent(ByteBuffer.wrap(payload));
 		assertEquals(EVENT, recovered);
 	}

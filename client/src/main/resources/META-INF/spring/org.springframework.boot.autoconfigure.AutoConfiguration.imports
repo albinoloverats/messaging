@@ -1,2 +1,2 @@
-net.albinoloverats.messaging.client.MessagingClientAutoConfiguration
-config.net.albinoloverats.messaging.client.EventSerialisationConfig
+net.albinoloverats.messaging.client.config.MessagingClientAutoConfiguration
+net.albinoloverats.messaging.client.config.EventSerialisationConfig

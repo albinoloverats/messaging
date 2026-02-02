@@ -78,3 +78,23 @@ object.
 
 The annotations are exposed/available when depending upon the client
 library.
+
+### Test
+
+A Spring Boot test library. It contains a simple, in-memory, client/
+server model that can be used to verify events/queries being published,
+as well as testing the handlers by easily allowing messages to be
+dispatched as needed. It also supports more of an end-to-end style of
+testing too, with the class/method annotation `@MessagnigDispatch`.
+By default, the test client will not forward events or queries
+preferring a more isolated approach to tests. If `@MessagnigDispatch`
+is applied at the class level, `@MessagnigNoDispatch` can disable this
+functionality on a per-test basis.
+
+For verification there are some simple matchers, which work similarly
+to those found in Mockito and Hamcrest.
+
+    of()       // to match by class
+    excatly()  // to match by calling Objects.equals()
+    matching() // to match by predicate; allows for more fine-graind comparisons
+    anyValue() // to match anything at all

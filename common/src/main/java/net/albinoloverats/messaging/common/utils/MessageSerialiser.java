@@ -163,7 +163,8 @@ public class MessageSerialiser
 		return modules;
 	}
 
-	private Pair<Pattern, Reflections> scanPackages(@NonNull Set<String> basePackages) {
+	private Pair<Pattern, Reflections> scanPackages(@NonNull Set<String> basePackages)
+	{
 		if (basePackages.isEmpty())
 		{
 			log.warn("No base packages provided for @Event class scanning. Event deserialisation might fail.");
@@ -276,7 +277,7 @@ public class MessageSerialiser
 	 * @param buffer The raw {@link ByteBuffer} from the network.
 	 * @return The JSON buffer, event ID, and message type.
 	 * @throws JacksonException Thrown by Jackson's object mapper if the event could not be deserialised.
-	 * @throws InvalidMessage          Thrown if the payload does not contain the expected/required ID and type.
+	 * @throws InvalidMessage   Thrown if the payload does not contain the expected/required ID and type.
 	 */
 	public static Triple<String, UUID, MessageType> extractMetadata(@NonNull ByteBuffer buffer) throws JacksonException, InvalidMessage
 	{

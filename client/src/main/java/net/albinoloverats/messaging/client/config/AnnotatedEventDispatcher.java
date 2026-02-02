@@ -1,4 +1,4 @@
-package net.albinoloverats.messaging.client;
+package net.albinoloverats.messaging.client.config;
 
 import com.jcabi.aspects.Loggable;
 import lombok.Getter;
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /**
@@ -36,12 +36,11 @@ import java.util.concurrent.Executors;
  */
 @Slf4j
 @RequiredArgsConstructor
-final class AnnotatedEventDispatcher implements ApplicationListener<ContextRefreshedEvent>
+public final class AnnotatedEventDispatcher implements ApplicationListener<ContextRefreshedEvent>
 {
 	private final ApplicationContext applicationContext;
-
-	private final ExecutorService eventExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
-	private final ExecutorService queryExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+	private final Executor eventExecutor;
+	private final Executor queryExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
 	/*
 	 * Map from event type name (String) to a list of HandlerMethod (Object instance + Method)
@@ -163,7 +162,7 @@ final class AnnotatedEventDispatcher implements ApplicationListener<ContextRefre
 	 * @return Any response from a query handler, null otherwise.
 	 */
 	@Loggable(value = Loggable.TRACE, prepend = true)
-	CompletableFuture<Object> dispatch(@NonNull Object event)
+	public CompletableFuture<?> dispatch(@NonNull Object event)
 	{
 		val eventClass = event.getClass();
 		val eventAnnotation = eventClass.getAnnotation(Event.class);
@@ -177,7 +176,7 @@ final class AnnotatedEventDispatcher implements ApplicationListener<ContextRefre
 		{
 			val handler = queryHandlerMap.get(type);
 			return CompletableFuture.supplyAsync(() ->
-					dispatch(handler, type, event), queryExecutorService);
+					dispatch(handler, type, event), queryExecutor);
 		}
 		else
 		{
@@ -189,7 +188,7 @@ final class AnnotatedEventDispatcher implements ApplicationListener<ContextRefre
 			}
 
 			handlers.forEach(handler ->
-					eventExecutorService.submit(() ->
+					eventExecutor.execute(() ->
 							dispatch(handler, type, event)));
 			return CompletableFuture.completedFuture(Void.class);
 		}

@@ -1,0 +1,1 @@
+org.springframework.test.context.TestExecutionListener=net.albinoloverats.messaging.test.config.MessagingTestExecutionListener
