@@ -98,3 +98,7 @@ to those found in Mockito and Hamcrest.
     excatly()  // to match by calling Objects.equals()
     matching() // to match by predicate; allows for more fine-graind comparisons
     anyValue() // to match anything at all
+
+### Demo
+
+There is a simple demonstration of how to use AMA [here](https://github.com/albinoloverats/messaging-demo).
