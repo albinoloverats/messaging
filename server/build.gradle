@@ -18,8 +18,8 @@ dependencies {
 
 	implementation 'tools.jackson.dataformat:jackson-dataformat-yaml'
 
-	implementation "io.micrometer:micrometer-core:1.16.3"
-	implementation "io.micrometer:micrometer-registry-prometheus:1.16.3"
+	implementation "io.micrometer:micrometer-core:1.17.0-M2"
+	implementation "io.micrometer:micrometer-registry-prometheus:1.17.0-M2"
 
 	implementation "org.aspectj:aspectjrt:1.9.25.1"
 	implementation "com.jcabi:jcabi-aspects:0.26.0"
