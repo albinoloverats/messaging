@@ -24,7 +24,7 @@ dependencies {
 	compileOnly "io.micrometer:micrometer-core:1.17.0-M2"
 	compileOnly "org.slf4j:slf4j-api"
 
-	api "org.apache.commons:commons-lang3:3.19.0"
+	api "org.apache.commons:commons-lang3:3.20.0"
 
 	implementation "org.aspectj:aspectjrt:1.9.25"
 	implementation "com.jcabi:jcabi-aspects:0.26.0"
