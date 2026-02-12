@@ -3,10 +3,17 @@ plugins {
 	id "java-library"
 	id "maven-publish"
 	id "java-test-fixtures"
+
 	id "io.freefair.lombok"
 	id "io.freefair.aspectj.post-compile-weaving"
+
 	id "io.spring.dependency-management"
 	id "org.gradlex.extra-java-module-info"
+}
+
+java {
+	withSourcesJar()
+	withJavadocJar()
 }
 
 dependencies {
@@ -66,9 +73,23 @@ publishing {
 					url = "https://github.com/albinoloverats/messaging/tree/master"
 				}
 			}
+			suppressPomMetadataWarningsFor("testFixturesApiElements")
+			suppressPomMetadataWarningsFor("testFixturesRuntimeElements")
 		}
 	}
 	repositories {
 		mavenLocal()
+		maven {
+			name = "SonatypeSnapshots"
+			url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+			credentials {
+				username = findProperty("sonatypeUsername") ?: System.getenv("SONATYPE_USERNAME")
+				password = findProperty("sonatypePassword") ?: System.getenv("SONATYPE_PASSWORD")
+			}
+		}
 	}
+}
+
+tasks.withType(AbstractPublishToMaven).configureEach {
+	onlyIf { !version.toString().endsWith("-SNAPSHOT") || true }
 }
