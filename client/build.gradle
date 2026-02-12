@@ -18,7 +18,7 @@ dependencies {
 	annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 	implementation "org.slf4j:slf4j-api"
 	implementation "jakarta.annotation:jakarta.annotation-api"
-	implementation "io.micrometer:micrometer-core:1.16.2"
+	implementation "io.micrometer:micrometer-core:1.17.0-M2"
 	implementation "org.aspectj:aspectjrt:1.9.25.1"
 	implementation "com.jcabi:jcabi-aspects:0.26.0"
 	aspect "com.jcabi:jcabi-aspects:0.26.0"

@@ -21,7 +21,7 @@ dependencies {
 	implementation "org.reflections:reflections:0.10.2"
 //	implementation "org.javassist:javassist:3.30.2-GA"
 
-	compileOnly "io.micrometer:micrometer-core:1.16.0-M3"
+	compileOnly "io.micrometer:micrometer-core:1.17.0-M2"
 	compileOnly "org.slf4j:slf4j-api"
 
 	api "org.apache.commons:commons-lang3:3.19.0"
