@@ -3,7 +3,7 @@ plugins {
 	id "java-library"
 	id "maven-publish"
 
-	id "org.springframework.boot" version "4.0.2"
+	id "org.springframework.boot" version "4.0.3"
 	id "io.spring.dependency-management"
 
 	id "io.freefair.lombok"
@@ -31,7 +31,7 @@ dependencies {
 
 	testImplementation testFixtures(project(":common"))
 	testImplementation "org.springframework.boot:spring-boot-starter-test"
-	testImplementation platform("org.junit:junit-bom:6.0.2")
+	testImplementation platform("org.junit:junit-bom:6.0.3")
 	testImplementation "org.junit.jupiter:junit-jupiter"
 	testImplementation "org.skyscreamer:jsonassert:1.5.3"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
