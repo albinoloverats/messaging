@@ -2,15 +2,14 @@ module net.albinoloverats.messaging.common
 {
 	requires transitive org.bouncycastle.pkix;
 	requires transitive org.bouncycastle.provider;
+	requires transitive tools.jackson.core;
+	requires transitive tools.jackson.databind;
 
 	requires spring.boot;
 	requires org.slf4j;
 	requires micrometer.core;
 	requires jcabi.aspects;
 	requires org.reflections;
-	requires com.fasterxml.jackson.annotation;
-	requires tools.jackson.core;
-	requires tools.jackson.databind;
 	requires org.apache.commons.lang3;
 
 	requires static lombok;

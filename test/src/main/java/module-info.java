@@ -10,8 +10,8 @@ module net.albinoloverats.messaging.test
 	requires spring.test;
 	requires org.slf4j;
 	requires jakarta.annotation;
-	requires com.fasterxml.jackson.annotation;
 	requires tools.jackson.core;
+	requires tools.jackson.databind;
 	requires org.apache.commons.lang3;
 
 	requires static lombok;

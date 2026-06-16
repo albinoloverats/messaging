@@ -59,20 +59,22 @@ public class Application
 					.build();
 
 			val configFile = new File(DOCKER_CONFIG);
-			if (configFile.exists() && configFile.isFile() && configFile.canRead())
+			if (configFile.exists())
 			{
-				val dockerConfig = yamlMapper.readValue(configFile, MessagingProperties.DockerWrapper.class);
-				log.info("Replacing application.yaml config with {}: {}", DOCKER_CONFIG, dockerConfig);
-				properties = dockerConfig.messaging();
-
-			}
-			else if (!configFile.isFile())
-			{
-				log.warn("{} was unexpectedly not a file!", DOCKER_CONFIG);
-			}
-			else if (!configFile.canRead())
-			{
-				log.warn("Could not read config file {}", DOCKER_CONFIG);
+				if (configFile.isFile() && configFile.canRead())
+				{
+					val dockerConfig = yamlMapper.readValue(configFile, MessagingProperties.DockerWrapper.class);
+					log.info("Replacing application.yaml config with {}: {}", DOCKER_CONFIG, dockerConfig);
+					properties = dockerConfig.messaging();
+				}
+				else if (!configFile.isFile())
+				{
+					log.warn("{} was unexpectedly not a file!", DOCKER_CONFIG);
+				}
+				else if (!configFile.canRead())
+				{
+					log.warn("Could not read config file {}", DOCKER_CONFIG);
+				}
 			}
 		}
 		catch (JacksonException e)

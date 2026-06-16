@@ -8,7 +8,7 @@ plugins {
 
 allprojects {
 	group "net.albinoloverats.messaging"
-	version "0.1.2-SNAPSHOT"
+	version "0.1.2"
 	repositories {
 		mavenLocal()
 		mavenCentral()
