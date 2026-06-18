@@ -6,7 +6,6 @@ plugins {
 
 	id "io.freefair.lombok"
 	id "io.freefair.aspectj.post-compile-weaving"
-	id "org.gradlex.extra-java-module-info"
 }
 
 dependencies {

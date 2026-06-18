@@ -1,7 +1,6 @@
 plugins {
 	id "java"
 	id "java-library"
-	id "maven-publish"
 
 	id "org.springframework.boot" version "4.1.0"
 	id "io.spring.dependency-management"
@@ -9,12 +8,10 @@ plugins {
 	id "io.freefair.lombok"
 	id "io.freefair.aspectj.post-compile-weaving"
 	id "org.gradlex.extra-java-module-info"
+
+	id "com.vanniktech.maven.publish" version "0.36.0"
 }
 
-java {
-	withSourcesJar()
-	withJavadocJar()
-}
 
 dependencies {
 	api project(":common")
@@ -28,7 +25,6 @@ dependencies {
 	implementation "com.jcabi:jcabi-aspects:0.26.0"
 	aspect "com.jcabi:jcabi-aspects:0.26.0"
 
-
 	testImplementation testFixtures(project(":common"))
 	testImplementation "org.springframework.boot:spring-boot-starter-test"
 	testImplementation platform("org.junit:junit-bom:6.1.0")
@@ -37,52 +33,36 @@ dependencies {
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
-publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			from components.java
-			pom {
-				artifactId = "messaging-" + project.name
-				name = "net.albinoloverats.messaging:" + artifactId
-				description = "Spring Boot ready messaging client. Depend on this, no need to explicitly depend on messaging-common"
-				url = "https://albinoloverats.net/projects/messaging"
-				licenses {
-					license {
-						name = "The Apache License, Version 2.0"
-						url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
-					}
-				}
-				developers {
-					developer {
-						name = "Ashley Anderson"
-						email = "messaging@albinoloverats.net"
-						organization = "albinoloverats ~ Software Development"
-						organizationUrl = "https://albinoloverats.net/"
-					}
-				}
-				scm {
-					connection = "scm:git:git://github.com/albinoloverats/messaging.git"
-					developerConnection = "scm:git:ssh://github.com:albinoloverats/messaging.git"
-					url = "https://github.com/albinoloverats/messaging/tree/master"
-				}
-			}
-		}
-	}
-	repositories {
-		mavenLocal()
-		maven {
-			name = "SonatypeSnapshots"
-			url = uri("https://central.sonatype.com/repository/maven-snapshots/")
-			credentials {
-				username = findProperty("sonatypeUsername") ?: System.getenv("SONATYPE_USERNAME")
-				password = findProperty("sonatypePassword") ?: System.getenv("SONATYPE_PASSWORD")
-			}
-		}
-	}
-}
+mavenPublishing {
+	publishToMavenCentral(true, true)
+	signAllPublications()
 
-tasks.withType(AbstractPublishToMaven).configureEach {
-	onlyIf { !version.toString().endsWith("-SNAPSHOT") || true }
+	coordinates("net.albinoloverats.messaging", "messaging-client", project.version)
+
+	pom {
+		name = "net.albinoloverats.messaging:messaging-client"
+		description = "Spring Boot ready messaging client. Depend on this, no need to explicitly depend on messaging-common"
+		url = "https://albinoloverats.net/projects/messaging"
+		licenses {
+			license {
+				name = "The Apache License, Version 2.0"
+				url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+			}
+		}
+		developers {
+			developer {
+				name = "Ashley Anderson"
+				email = "messaging@albinoloverats.net"
+				organization = "albinoloverats ~ Software Development"
+				organizationUrl = "https://albinoloverats.net/"
+			}
+		}
+		scm {
+			connection = "scm:git:git://github.com/albinoloverats/messaging.git"
+			developerConnection = "scm:git:ssh://github.com:albinoloverats/messaging.git"
+			url = "https://github.com/albinoloverats/messaging/tree/master"
+		}
+	}
 }
 
 bootJar {
