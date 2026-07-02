@@ -7,7 +7,7 @@ plugins {
 	id "io.freefair.aspectj.post-compile-weaving" version "9.5.0"
 
 	id "com.vanniktech.maven.publish" version "0.36.0" apply false
-	id "org.gradlex.extra-java-module-info" version "1.14"
+	id "org.gradlex.extra-java-module-info" version "1.14.2"
 }
 
 allprojects {
