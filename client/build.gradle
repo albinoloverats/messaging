@@ -9,7 +9,7 @@ plugins {
 	id "io.freefair.aspectj.post-compile-weaving"
 	id "org.gradlex.extra-java-module-info"
 
-	id "com.vanniktech.maven.publish" version "0.36.0"
+	id "com.vanniktech.maven.publish" version "0.37.0"
 }
 
 
@@ -27,7 +27,7 @@ dependencies {
 
 	testImplementation testFixtures(project(":common"))
 	testImplementation "org.springframework.boot:spring-boot-starter-test"
-	testImplementation platform("org.junit:junit-bom:6.1.0")
+	testImplementation platform("org.junit:junit-bom:6.1.2")
 	testImplementation "org.junit.jupiter:junit-jupiter"
 	testImplementation "org.skyscreamer:jsonassert:1.5.3"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"

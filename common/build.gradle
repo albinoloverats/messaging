@@ -9,7 +9,7 @@ plugins {
 	id "io.spring.dependency-management"
 	id "org.gradlex.extra-java-module-info"
 
-	id "com.vanniktech.maven.publish" version "0.36.0"
+	id "com.vanniktech.maven.publish" version "0.37.0"
 }
 
 dependencies {
@@ -18,8 +18,8 @@ dependencies {
 
 	api "tools.jackson.core:jackson-databind"
 
-	api "org.bouncycastle:bcprov-jdk18on:1.84"
-	api "org.bouncycastle:bcpkix-jdk18on:1.84"
+	api "org.bouncycastle:bcprov-jdk18on:1.85"
+	api "org.bouncycastle:bcpkix-jdk18on:1.85"
 
 	implementation "org.reflections:reflections:0.10.2"
 //	implementation "org.javassist:javassist:3.30.2-GA"
@@ -33,9 +33,9 @@ dependencies {
 	implementation "com.jcabi:jcabi-aspects:0.26.0"
 	aspect "com.jcabi:jcabi-aspects:0.26.0"
 
-	testImplementation platform("org.junit:junit-bom:6.1.0")
+	testImplementation platform("org.junit:junit-bom:6.1.2")
 	testImplementation "org.junit.jupiter:junit-jupiter"
-	testImplementation "ch.qos.logback:logback-classic:1.5.34"
+	testImplementation "ch.qos.logback:logback-classic:1.5.38"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
